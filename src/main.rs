@@ -50,7 +50,7 @@ fn translate_path_to_unix(argument: String) -> String {
         };
         let win_path = Path::new(arg);
         if win_path.is_absolute() || win_path.exists() {
-            let wsl_path: String = win_path.components().fold(String::new(), |mut acc, c| {
+            let mut wsl_path: String = win_path.components().fold(String::new(), |mut acc, c| {
                 match c {
                     Component::Prefix(prefix_comp) => {
                         let d = get_drive_letter(&prefix_comp)
@@ -72,6 +72,12 @@ fn translate_path_to_unix(argument: String) -> String {
                 };
                 acc
             });
+
+            if wsl_path.ends_with("Fork.RI.exe") {
+                // Instead of using Fork.RI.exe use the script 'Fork.RI'.
+                wsl_path = wsl_path.replace("Fork.RI.exe", "Fork.RI");
+            }
+
             return format!("{}{}", &argname, &wsl_path);
         }
     }
