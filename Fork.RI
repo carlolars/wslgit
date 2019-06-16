@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+#! This script should be copied to the same directory as Fork.RI.exe.
+#! Make sure that both Fork.RI.exe and the script Fork.RI have the execution flags set in WSL.
+
+FORK_RI_PATH="$(dirname "$(realpath "$0")")"
+FORK_RI_EXE="$FORK_RI_PATH/Fork.RI.exe"
+
+UNAME=$(uname -a)
+# 'uname -a' returns:
+# WSL: Linux PCNAME 4.4.0-17134-Microsoft #706-Microsoft Mon Apr 01 18:13:00 PST 2019 x86_64 x86_64 x86_64 GNU/Linux
+# MINGW64: MINGW64_NT-10.0 PCNAME 2.11.2(0.329/5/3) 2018-11-26 09:22 x86_64 Msys
+# MINGW32: MINGW32_NT-10.0 PCNAME 2.11.2(0.329/5/3) 2018-11-26 09:22 x86_64 Msys
+# MSYS: MSYS_NT-10.0 PCNAME 2.11.2(0.329/5/3) 2018-11-26 09:22 x86_64 Msys
+
+if [[ $UNAME == *Microsoft* ]]; then
+    # in a wsl shell
+    WSL_BUILD=$(sed -E 's/^.+-([0-9]+)-[Mm]icrosoft.*/\1/' <<< $UNAME)
+    if [ $WSL_BUILD -ge 17046 ] 2> /dev/null; then
+        # WSLPATH is available since WSL build 17046
+        ARGS=$(wslpath -w "$@")
+        "$FORK_RI_EXE" "$ARGS"
+        exit $?
+    else
+        # ! No WSLPATH available.
+        # todo Add manual wslpath translation, or just support WSL builds 17046 and later
+        exit 1
+    fi
+elif [[ $UNAME == *Msys ]]; then
+    # in a msys shell
+    # todo verify
+    "$FORK_RI_EXE" "$@"
+    exit $?
+else
+    # unknown shell
+    exit 1
+fi
