@@ -114,6 +114,14 @@ then `wslgit` must be instructed to use the correct mount root by, in Windows,
 setting the environment variable `WSLGIT_MOUNT_ROOT` to the new root path.  
 If, for example, the mount root defined in wsl.conf is `/` then set `WSLGIT_MOUNT_ROOT` to just `/`.
 
+## Logging
+
+To aid in trouble shooting a simple file log can be enabled by setting the environment variable `WSLGIT_ENABLE_LOGGING` to **`true`** or **`1`**. The logfile, `wslgit.log`, will be stored in the same folder as the `wslgit.exe` executable.
+
+The log stores the input arguments to `wslgit.exe` and the resulting arguments to `wsl.exe`, so be aware that there likely will be information such as your **Windows user name** or **project folders** in the log file.
+
+The performance impact when enabled is small, but the file will continue to grow as long as logging is enabled so it's not recommended to enable logging for more than a limited time.
+
 ## Building from source
 
 First, install Rust from https://www.rust-lang.org. Rust on Windows also
@@ -137,3 +145,4 @@ cargo test test -- --test-threads=1
 # Run only integration tests
 cargo test integration -- --test-threads=1
 ```
+

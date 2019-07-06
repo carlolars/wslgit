@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::env;
-
+use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::{Component, Path, Prefix, PrefixComponent};
 use std::process::{Command, Stdio};
@@ -155,6 +155,38 @@ fn use_interactive_shell() -> bool {
     true
 }
 
+fn enable_logging() -> bool {
+    if let Ok(enable_log_flag) = env::var("WSLGIT_ENABLE_LOGGING") {
+        if enable_log_flag == "true" || enable_log_flag == "1" {
+            return true;
+        }
+    }
+    false
+}
+
+fn log_arguments(out_args: &Vec<String>) {
+    let in_args = env::args().collect::<Vec<String>>();
+    let logfile = match env::current_exe() {
+        Ok(exe_path) => exe_path
+            .parent()
+            .unwrap()
+            .join("wslgit.log")
+            .to_string_lossy()
+            .into_owned(),
+        Err(e) => {
+            eprintln!("Failed to get current exe path: {}", e);
+            Path::new("wslgit.log").to_string_lossy().into_owned()
+        }
+    };
+
+    let f = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(logfile)
+        .unwrap();
+    write!(&f, "{:?} -> {:?}\n", in_args, out_args).unwrap();
+}
+
 fn main() {
     let mut cmd_args = Vec::new();
     let cwd_unix =
@@ -184,6 +216,10 @@ fn main() {
         cmd_args.push("-c".to_string());
     }
     cmd_args.push(git_cmd.clone());
+
+    if enable_logging() {
+        log_arguments(&cmd_args);
+    }
 
     // setup the git subprocess launched inside WSL
     let mut git_proc_setup = Command::new("wsl");
