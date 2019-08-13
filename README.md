@@ -13,7 +13,7 @@ representations.
 ## Download
 
 The latest binary release can be found on the
-[releases page](https://github.com/andy-5/wslgit/releases).
+[releases page](https://github.com/carlolars/wslgit/releases).
 
 You may also need to install the latest
 [*Microsoft Visual C++ Redistributable for Visual Studio 2017*](https://aka.ms/vs/15/release/vc_redist.x64.exe).
@@ -127,7 +127,7 @@ To make it use git from WSL instead the `git.exe` must be replaced with a rename
 
 **Instructions**
 1. Get the *fork-patch* version of `wslgit.exe`:
-   1. Download the latest *fork-patch* binary release from the [releases page](/releases), or
+   1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
    2. Build the branch `fork-patch`, see build instructions [above](#building-from-source).
 2. Rename `wslgit.exe` to just `git.exe` and copy into Fork's git bin directory,  
    which is located somewhere like `%HOMEPATH%\AppData\Local\Fork\gitInstance\2.20.1\bin` depending on the version.
