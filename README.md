@@ -2,7 +2,7 @@
 
 This project provides a small executable that forwards all arguments
 to `git` running inside Bash on Windows/Windows Subsystem for Linux (WSL).  
-This branch (`fork-patch`) is patched to make it possible for [Fork](https://www.fork.dev) to use `wslgit` instead of the `git` that comes bundled with Fork, see instructions [below](#using-with-fork)
+This branch (`fork-patch`) is patched to make it possible for [Fork](https://www.fork.dev) to use `wslgit` instead of the `git` that comes bundled with Fork, see instructions [below](#usage-in-fork).
 
 The primary reason for this tool is to make the Git plugin in
 Visual Studio Code (VSCode) work with the `git` command installed in WSL.
@@ -52,6 +52,23 @@ and use that tool to edit `Path`.
 You can then just run any git command from a Windows console
 by running `wslgit COMMAND` or `git COMMAND` and it uses the Git version
 installed in WSL.
+
+
+## Usage in Fork
+[Fork](https://fork.dev) is a Git GUI tool for Windows (and Mac) that use its own portable version of `Git for Windows`.  
+To make it use `git from WSL` use the environment variable `forkgitinstance` to point to the *fork-patch* version of `wslgit.exe`, and for interactive rebase to work from Fork a wrapper script that calls `Fork.RI.exe` with its arguments converted from Unix paths to Windows paths must be used.
+
+**Instructions**
+1. Get the *fork-patch* version of `wslgit.exe`:
+   1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
+   2. Build the branch `fork-patch`, see build instructions [above](#building-from-source).
+2. Create an environment variable named `forkgitinstance` (yes lower case) with the value set to the path to the *fork-patch* version of `wslgit.exe`.
+3. Copy the script `Fork.RI` to Fork's application directory, which is something like `%HOMEPATH%\AppData\Local\Fork\app-1.39.0\` depending on the version.
+4. From a WSL terminal, make sure that both the `Fork.RI.exe` and `Fork.RI` script are executable:  
+   ```
+   $ chmod +x ~/AppData/Local/Fork/app-1.39.0/Fork.RI*
+   ```
+**Important!** Steps 3 and 4 must be repeated every time Fork is updated.
 
 
 ## Remarks
@@ -120,21 +137,3 @@ cargo test test -- --test-threads=1
 # Run only integration tests
 cargo test integration -- --test-threads=1
 ```
-
-## Using with Fork
-[Fork](https://fork.dev) is a Git GUI tool for Windows (and Mac) that use its own portable version of *Git for Windows*.  
-To make it use git from WSL instead the `git.exe` must be replaced with a renamed `wslgit`, and for interactive rebase to work from Fork a wrapper script that calls `Fork.RI.exe` with its arguments converted from Unix paths to Windows paths must be used.
-
-**Instructions**
-1. Get the *fork-patch* version of `wslgit.exe`:
-   1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
-   2. Build the branch `fork-patch`, see build instructions [above](#building-from-source).
-2. Rename `wslgit.exe` to just `git.exe` and copy into Fork's git bin directory,  
-   which is located somewhere like `%HOMEPATH%\AppData\Local\Fork\gitInstance\2.20.1\bin` depending on the version.
-3. Copy the script `Fork.RI` to Fork's application directory,  
-   which is something like `%HOMEPATH%\AppData\Local\Fork\app-1.37.2\` depending on the version.
-4. From a WSL terminal, make sure that both the `Fork.RI.exe` and `Fork.RI` script are executable:  
-   ```
-   $ chmod +x ~/AppData/Local/Fork/app-1.37.2/Fork.RI*
-   ```
-**Important!** Steps 2 to 4 must be repeated every time Fork is updated.
