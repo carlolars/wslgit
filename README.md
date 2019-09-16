@@ -56,19 +56,19 @@ installed in WSL.
 
 ## Usage in Fork
 [Fork](https://fork.dev) is a Git GUI tool for Windows (and Mac) that use its own portable version of `Git for Windows`.  
-To make it use `git from WSL` use the environment variable `forkgitinstance` to point to the *fork-patch* version of `wslgit.exe`, and for interactive rebase to work from Fork a wrapper script that calls `Fork.RI.exe` with its arguments converted from Unix paths to Windows paths must be used.
+To make Fork use `git from WSL` its original `git.exe` must be replaced with a `wslgit.exe` patched for Fork and, for interactive rebase to work, a wrapper script that calls `Fork.RI.exe` with the arguments converted from Unix paths to Windows paths must be used.
 
 **Instructions**
 1. Get the *fork-patch* version of `wslgit.exe`:
    1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
    2. Build the branch `fork-patch`, see build instructions [above](#building-from-source).
-2. Create an environment variable named `forkgitinstance` (yes lower case) with the value set to the path to the *fork-patch* version of `wslgit.exe`.
+2. Rename `wslgit.exe` to just `git.exe` and replace Fork's *git.exe* with the renamed *wslgit.exe*. Fork's git.exe is at the time of writing located in `%HOMEPATH%\AppData\Local\Fork\gitInstance\2.20.1\bin`.
 3. Copy the script `Fork.RI` to Fork's application directory, which is something like `%HOMEPATH%\AppData\Local\Fork\app-1.39.0\` depending on the version.
-4. From a WSL terminal, make sure that both the `Fork.RI.exe` and `Fork.RI` script are executable:  
+4. From a WSL terminal, make sure that both the `Fork.RI.exe` and the `Fork.RI` script are executable:  
    ```
    $ chmod +x ~/AppData/Local/Fork/app-1.39.0/Fork.RI*
    ```
-**Important!** Steps 3 and 4 must be repeated every time Fork is updated.
+**Important!** Steps 3 and 4 must be repeated every time Fork is updated. Step 2 needs to be repeated if Fork updates its bundled git.
 
 
 ## Remarks
