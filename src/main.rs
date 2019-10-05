@@ -41,6 +41,7 @@ fn get_prefix_for_drive(drive: &str) -> String {
 }
 
 fn translate_path_to_unix(argument: String) -> String {
+    let argument = patch_argument_for_fork(argument);
     {
         let (argname, arg) = if argument.contains('=') {
             let parts: Vec<&str> = argument.splitn(2, '=').collect();
@@ -50,7 +51,7 @@ fn translate_path_to_unix(argument: String) -> String {
         };
         let win_path = Path::new(arg);
         if win_path.is_absolute() || win_path.exists() {
-            let mut wsl_path: String = win_path.components().fold(String::new(), |mut acc, c| {
+            let wsl_path: String = win_path.components().fold(String::new(), |mut acc, c| {
                 match c {
                     Component::Prefix(prefix_comp) => {
                         let d = get_drive_letter(&prefix_comp)
@@ -73,8 +74,6 @@ fn translate_path_to_unix(argument: String) -> String {
                 acc
             });
 
-            wsl_path = patch_argument_for_fork(wsl_path);
-
             return format!("{}{}", &argname, &wsl_path);
         }
     }
@@ -82,13 +81,66 @@ fn translate_path_to_unix(argument: String) -> String {
 }
 
 fn patch_argument_for_fork(path: String) -> String {
-    // "sequence.editor=C:/Users/xxx/AppData/Local/Fork/app-x.xx.x/Fork.RI.exe"
-    // "core.editor=C:/Users/xxx/AppData/Local/Fork/app-x.xx.x/Fork.RI.exe"
-    if path.ends_with("Fork.RI.exe") {
-        // Instead of using Fork.RI.exe use the script 'Fork.RI'.
-        return path.replace("Fork.RI.exe", "Fork.RI");
+    // "xxx.editor=C:/Users/xxx/AppData/Local/Fork/app-x.xx.x/Fork.RI.exe"
+    lazy_static! {
+        static ref FORK_RI_EXE_PATH_EX: regex::Regex = regex::Regex::new(
+            // r"\.editor=(?P<fork_ri_exe_path>.*Fork\.RI\.exe)"
+            r"(?P<prefix>\.editor=)(?P<fork_ri_exe_path>.*Fork\.RI\.exe)"
+        )
+        .expect("Failed to compile FORK_RI_EXE_PATH_EX regex");
     }
-    path
+
+    match FORK_RI_EXE_PATH_EX.captures(path.as_str()) {
+        Some(caps) => {
+            let fork_ri_exe_path = caps.name("fork_ri_exe_path").unwrap().as_str();
+            pass_value_to_wsl("FORK_RI_EXE_PATH", fork_ri_exe_path);
+
+            let fork_ri_script_path = match env::current_exe() {
+                Ok(p) => p
+                    .parent()
+                    .unwrap()
+                    .join("Fork.RI")
+                    .to_string_lossy()
+                    .into_owned(),
+                Err(e) => {
+                    eprintln!("Failed to get current exe path: {}", e);
+                    panic!();
+                }
+            };
+            let r = format!("${{prefix}}{}", fork_ri_script_path);
+            return FORK_RI_EXE_PATH_EX
+                .replace_all(path.as_str(), r.as_str())
+                .into_owned();
+        }
+        None => return path,
+    }
+}
+
+/// Pass a value to WSL by using an environment variable and WSLENV.
+///
+/// * `name` - Name to use for the environment variable.
+/// * `value` - The value to pass to WSL using the environment variable.
+fn pass_value_to_wsl(name: &str, value: &str) {
+    if env::var(name).is_err() {
+        env::set_var(name, value);
+    }
+
+    match env::var("WSLENV") {
+        Ok(wslenv) => {
+            // WSLENV exists, add new variable only once
+            let re: regex::Regex = regex::Regex::new(format!(r"(^|:){}(/|:|$)", name).as_str())
+                .expect("Failed to compile regex");
+            if re.is_match(wslenv.as_str()) == false {
+                let wslenv = format!("{}:{}/p", wslenv, name);
+                env::set_var("WSLENV", wslenv);
+            }
+        }
+        Err(_e) => {
+            // No WSLENV
+            let wslenv = format!("{}/p", name);
+            env::set_var("WSLENV", wslenv);
+        }
+    };
 }
 
 // Translate absolute unix paths to windows paths by mapping what looks like a mounted drive ('/mnt/x') to a drive letter ('x:/').

@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 
-#! This script should be copied to the same directory as Fork.RI.exe.
-#! Make sure that both Fork.RI.exe and the script Fork.RI have the execution flags set in WSL.
-
-FORK_RI_PATH="$(dirname "$(realpath "$0")")"
-FORK_RI_EXE="$FORK_RI_PATH/Fork.RI.exe"
-
 UNAME=$(uname -a)
 # 'uname -a' returns:
-# WSL: Linux PCNAME 4.4.0-17134-Microsoft #706-Microsoft Mon Apr 01 18:13:00 PST 2019 x86_64 x86_64 x86_64 GNU/Linux
+# WSL1: Linux PCNAME 4.4.0-17134-Microsoft #706-Microsoft Mon Apr 01 18:13:00 PST 2019 x86_64 x86_64 x86_64 GNU/Linux
 # MINGW64: MINGW64_NT-10.0 PCNAME 2.11.2(0.329/5/3) 2018-11-26 09:22 x86_64 Msys
 # MINGW32: MINGW32_NT-10.0 PCNAME 2.11.2(0.329/5/3) 2018-11-26 09:22 x86_64 Msys
 # MSYS: MSYS_NT-10.0 PCNAME 2.11.2(0.329/5/3) 2018-11-26 09:22 x86_64 Msys
@@ -18,8 +12,13 @@ if [[ $UNAME == *Microsoft* ]]; then
     WSL_BUILD=$(sed -E 's/^.+-([0-9]+)-[Mm]icrosoft.*/\1/' <<< $UNAME)
     if [ $WSL_BUILD -ge 17046 ] 2> /dev/null; then
         # WSLPATH is available since WSL build 17046
+
+        # Make sure that Fork.RI.exe is executable.
+        chmod +x "$FORK_RI_EXE_PATH"
+
+        # Call Fork.RI.exe with the path to the REBASE-TODO converted to a windows path.
         ARGS=$(wslpath -w "$@")
-        "$FORK_RI_EXE" "$ARGS"
+        "$FORK_RI_EXE_PATH" "$ARGS"
         exit $?
     else
         # ! No WSLPATH available.
@@ -29,7 +28,7 @@ if [[ $UNAME == *Microsoft* ]]; then
 elif [[ $UNAME == *Msys ]]; then
     # in a msys shell
     # todo verify
-    "$FORK_RI_EXE" "$@"
+    "$FORK_RI_EXE_PATH" "$@"
     exit $?
 else
     # unknown shell
