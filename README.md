@@ -54,22 +54,41 @@ by running `wslgit COMMAND` or `git COMMAND` and it uses the Git version
 installed in WSL.
 
 
-## Usage in Fork
+## Usage in Fork (version 1.40.1+)
 [Fork](https://fork.dev) is a Git GUI tool for Windows (and Mac) that use its own portable version of `Git for Windows`.  
-To make Fork use `git from WSL` its original `git.exe` must be replaced with a `wslgit.exe` patched for Fork and, for interactive rebase to work, a wrapper script that calls `Fork.RI.exe` with the arguments converted from Unix paths to Windows paths must be used.
+To make Fork use `git from WSL` then `wslgit.exe`, **patched for Fork**, must be renamed to just `git.exe` and selected 
+as Fork's git instance, and for interactive rebase to work the `Fork.RI` script must be in the same directory as `git.exe`.  
+Fork also expects that `bash.exe` and `sh.exe` exist alongside `git.exe`, this is achieved by creating two symbolic links
+that both point to `C:\Windows\System32\bash.exe`.
 
 **Instructions**
-1. Get the *fork-patch* version of `wslgit.exe`:
-   1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
-   2. Build the branch `fork-patch`, see build instructions [above](#building-from-source).
-2. Rename `wslgit.exe` to just `git.exe` and replace Fork's *git.exe* with the renamed *wslgit.exe*. Fork's git.exe is at the time of writing located in `%HOMEPATH%\AppData\Local\Fork\gitInstance\2.20.1\bin`.
-3. Copy the script `Fork.RI` to Fork's application directory, which is something like `%HOMEPATH%\AppData\Local\Fork\app-1.39.0\` depending on the version.
-4. From a WSL terminal, make sure that both the `Fork.RI.exe` and the `Fork.RI` script are executable:  
+1. Get the *fork-patched* version of `wslgit.exe`:
+    1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
+    2. Build the branch `fork-patch` and rename the output to `git.exe`, see build instructions [below](#building-from-source).
+2. Copy `git.exe` and `Fork.RI` to a folder, for example `C:\Users\yourname\git` or `C:\Users\yourname\bin`.
+3. In the same folder create two symlinks, `bash.exe` and `sh.exe`, that both points to `C:\Windows\System32\bash.exe`.  
+    **Note!** The links must be created from `cmd.exe`, and you must run it as Administrator.
+    ```
+    C:\Users\carl-oskar\git>mklink bash.exe C:\Windows\System32\bash.exe
+    symbolic link created for bash.exe <<===>> C:\Windows\System32\bash.exe
+    C:\Users\carl-oskar\git>mklink sh.exe C:\Windows\System32\bash.exe
+    symbolic link created for sh.exe <<===>> C:\Windows\System32\bash.exe
+    C:\Users\carl-oskar\git>dir
+    2019-10-09  10:09    <SYMLINK>      bash.exe [C:\Windows\System32\bash.exe]
+    2019-10-09  10:09             1 137 Fork.RI
+    2019-10-09  10:09         1 468 416 git.exe
+    2019-10-09  10:09    <SYMLINK>      sh.exe [C:\Windows\System32\bash.exe]
    ```
-   $ chmod +x ~/AppData/Local/Fork/app-1.39.0/Fork.RI*
-   ```
-**Important!** Steps 3 and 4 must be repeated every time Fork is updated. Step 2 needs to be repeated if Fork updates its bundled git.
+4. In `WSL` make sure that `Fork.RI` script is executable:
+    ```
+    $ chmod +x ~/bin/Fork.RI
+    $ ls -l ~/bin/Fork.RI
+    -rwxr-xr-x 1 carl-oskar carl-oskar 1.2K Oct  9 10:09 /c/Users/carl-oskar/git/Fork.RI
+    ```
+5. Start `Fork`, go to the preferences and select a custom git instance where you point it to the correct `git.exe`.
 
+When updating `wslgit` then repeat steps 1 and 2, and possibly 4.  
+When Fork updates it will still use the custom git so no action is needed.
 
 ## Remarks
 
@@ -145,4 +164,3 @@ cargo test test -- --test-threads=1
 # Run only integration tests
 cargo test integration -- --test-threads=1
 ```
-
