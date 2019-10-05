@@ -73,15 +73,22 @@ fn translate_path_to_unix(argument: String) -> String {
                 acc
             });
 
-            if wsl_path.ends_with("Fork.RI.exe") {
-                // Instead of using Fork.RI.exe use the script 'Fork.RI'.
-                wsl_path = wsl_path.replace("Fork.RI.exe", "Fork.RI");
-            }
+            wsl_path = patch_argument_for_fork(wsl_path);
 
             return format!("{}{}", &argname, &wsl_path);
         }
     }
     argument
+}
+
+fn patch_argument_for_fork(path: String) -> String {
+    // "sequence.editor=C:/Users/xxx/AppData/Local/Fork/app-x.xx.x/Fork.RI.exe"
+    // "core.editor=C:/Users/xxx/AppData/Local/Fork/app-x.xx.x/Fork.RI.exe"
+    if path.ends_with("Fork.RI.exe") {
+        // Instead of using Fork.RI.exe use the script 'Fork.RI'.
+        return path.replace("Fork.RI.exe", "Fork.RI");
+    }
+    path
 }
 
 // Translate absolute unix paths to windows paths by mapping what looks like a mounted drive ('/mnt/x') to a drive letter ('x:/').
