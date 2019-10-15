@@ -108,30 +108,35 @@ Only spaces and newlines in arguments are currently handled.
 
 ## Advanced Usage
 
-Per default, `wslgit` executes `git` inside the WSL environment through bash
-started in interactive mode. This is to automatically support the common case
-where `ssh-agent` or similar tools are setup by `.bashrc` in interactive mode.
-However, this may significantly slow down the execution of git commands.
-To improve startup time, you can configure `wslgit` to execute git via a
-non-interactive bash session. This can be achieved using one of the following
-two methods:
+### WSLGIT_USE_INTERACTIVE_SHELL
+To automatically support the common case where `ssh-agent` or similar tools are 
+setup by `.bashrc` in interactive mode then, per default, `wslgit` executes `git` 
+inside the WSL environment through `bash` started in interactive mode for some 
+commands (`clone`, `fetch`, `pull` and `push`), and `bash` started in non-interactive 
+mode for all other commands.
 
-  - In Windows, set the environment variable `WSLGIT_USE_INTERACTIVE_SHELL` to
-    `false` or `0`. This forces `wslgit` to start bash in non-interactive mode.
-  - Alternatively, if the Windows environment variable `BASH_ENV` is set to
-    a bash startup script and the environment variable `WSLENV` contains the
-    string `"BASH_ENV"`, then `wslgit` assumes that the forced startup script
-    from `BASH_ENV` contains everything you need, and therefore also starts
-    bash in non-interactive mode.
+The behavior can be selected by setting an environment variable in Windows 
+named `WSLGIT_USE_INTERACTIVE_SHELL` to one of the following values:
+* `false` or `0` - Force `wslgit` to **always** start in **_non_-interactive** mode.
+* `true`, `1`, or empty value - Force `wslgit` to **always** start in **interactive** mode.
+* `smart` (default) - Interactive mode for `clone`, `fetch`, `pull`, `push`, 
+non-interactive mode for all other commands. This is the default if the variable is not set.
+
+Alternatively, if `WSLGIT_USE_INTERACTIVE_SHELL` is **not** set but the Windows 
+environment variable `BASH_ENV` is set to a bash startup script and the environment 
+variable `WSLENV` contains the string `"BASH_ENV"`, then `wslgit` assumes that 
+the forced startup script from `BASH_ENV` contains everything you need, and 
+therefore also starts bash in non-interactive mode.
 
 This feature is only available in Windows 10 builds 17063 and later.
 
-## Mount Root
+### WSLGIT
+`wslgit` set a variable called `WSLGIT` to `1` and shares it to WSL. This variable can be used in `.bashrc` to 
+determine if WSL was invoked by `wslgit`, and for example if set then just do the absolute minimum of initialization 
+needed for `git` to function.  
+Combined with `WSLGIT_USE_INTERACTIVE_SHELL=smart` (default) this can make every git command execute with as little overhead as possible.
 
-The default mount root is `/mnt/`, but if it has been changed using `/etc/wsl.conf`
-then `wslgit` must be instructed to use the correct mount root by, in Windows,
-setting the environment variable `WSLGIT_MOUNT_ROOT` to the new root path.  
-If, for example, the mount root defined in wsl.conf is `/` then set `WSLGIT_MOUNT_ROOT` to just `/`.
+This feature is only available in Windows 10 builds 17063 and later.
 
 ## Logging
 
@@ -163,4 +168,6 @@ cargo test -- --test-threads=1
 cargo test test -- --test-threads=1
 # Run only integration tests
 cargo test integration -- --test-threads=1
+# Run benchmarks (requires nightly toolchain!)
+cargo +nightly bench
 ```
