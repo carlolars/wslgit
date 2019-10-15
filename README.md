@@ -54,7 +54,7 @@ by running `wslgit COMMAND` or `git COMMAND` and it uses the Git version
 installed in WSL.
 
 
-## Usage in Fork (version 1.40.1+)
+## Usage in Fork
 [Fork](https://fork.dev) is a Git GUI tool for Windows (and Mac) that use its own portable version of `Git for Windows`.  
 To make Fork use `git from WSL` then `wslgit.exe`, **patched for Fork**, must be renamed to just `git.exe` and selected 
 as Fork's git instance, and for interactive rebase to work the `Fork.RI` script must be in the same directory as `git.exe`.  
