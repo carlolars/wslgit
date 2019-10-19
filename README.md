@@ -56,38 +56,18 @@ installed in WSL.
 
 ## Usage in Fork
 [Fork](https://fork.dev) is a Git GUI tool for Windows (and Mac) that use its own portable version of `Git for Windows`.  
-To make Fork use `git from WSL` then `wslgit.exe`, **patched for Fork**, must be renamed to just `git.exe` and selected 
-as Fork's git instance, and for interactive rebase to work the `Fork.RI` script must be in the same directory as `git.exe`.  
+To make Fork use `git from WSL` then a `wslgit` that is **patched for Fork** must be selected as Fork's custom git instance, 
+and for interactive rebase to work the `Fork.RI` script must be in the same directory as the selected `git.exe`.  
 Fork also expects that `bash.exe` and `sh.exe` exist alongside `git.exe`, this is achieved by creating two symbolic links
 that both point to `C:\Windows\System32\bash.exe`.
 
 **Instructions**
-1. Get the *fork-patched* version of `wslgit.exe`:
-    1. Download the latest *fork-patch* binary release from the [releases page](https://github.com/carlolars/wslgit/releases), or
-    2. Build the branch `fork-patch` and rename the output to `git.exe`, see build instructions [below](#building-from-source).
-2. Copy `git.exe` and `Fork.RI` to a folder, for example `C:\Users\yourname\git` or `C:\Users\yourname\bin`.
-3. In the same folder create two symlinks, `bash.exe` and `sh.exe`, that both points to `C:\Windows\System32\bash.exe`.  
-    **Note!** The links must be created from `cmd.exe`, and you must run it as Administrator.
-    ```
-    C:\Users\carl-oskar\git>mklink bash.exe C:\Windows\System32\bash.exe
-    symbolic link created for bash.exe <<===>> C:\Windows\System32\bash.exe
-    C:\Users\carl-oskar\git>mklink sh.exe C:\Windows\System32\bash.exe
-    symbolic link created for sh.exe <<===>> C:\Windows\System32\bash.exe
-    C:\Users\carl-oskar\git>dir
-    2019-10-09  10:09    <SYMLINK>      bash.exe [C:\Windows\System32\bash.exe]
-    2019-10-09  10:09             1 137 Fork.RI
-    2019-10-09  10:09         1 468 416 git.exe
-    2019-10-09  10:09    <SYMLINK>      sh.exe [C:\Windows\System32\bash.exe]
-   ```
-4. In `WSL` make sure that `Fork.RI` script is executable:
-    ```
-    $ chmod +x ~/bin/Fork.RI
-    $ ls -l ~/bin/Fork.RI
-    -rwxr-xr-x 1 carl-oskar carl-oskar 1.2K Oct  9 10:09 /c/Users/carl-oskar/git/Fork.RI
-    ```
-5. Start `Fork`, go to the preferences and select a custom git instance where you point it to the correct `git.exe`.
+1. Download the zip with the *fork-patch* version of `wslgit` from the [releases page](https://github.com/carlolars/wslgit/releases/latest) and extract all the files.
+2. Run the `install.bat` script *as administrator*. The script is located in the extracted `Git` folder.
+3. Add the path to the extracted `Git\cmd` folder (see output from *install.bat*) to the Windows `Path` environment variable (user or system) to use as system git.
+4. Start `Fork`, go to the preferences and select a custom git instance where you point it to the `git.exe` in the `Git\cmd` folder.
 
-When updating `wslgit` then repeat steps 1 and 2, and possibly 4.  
+When updating `wslgit` then repeat steps 1 and 2.  
 When Fork updates it will still use the custom git so no action is needed.
 
 ## Remarks
