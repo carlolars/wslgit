@@ -16,10 +16,10 @@ fn translate_path_to_unix(argument: String) -> String {
     // An absolute or UNC path must:
     // 1. Be at the beginning of the string, or after a whitespace, colon, or equal-sign.
     // 2. Begin with <drive-letter>:\, <drive-letter>:/ or \\
-    // 3. Not contain the characters: <>:|?' or newline.
+    // 3. Not contain the characters: <>:|?'" or newline.
     lazy_static! {
         static ref ABS_WINPATH_RE: Regex = Regex::new(
-            r"(?-u)(?P<pre>^|[[:space:]]|:|=)(?P<path>([A-Za-z]:[\\/]|\\\\)([^<>:|?'\n]*[\\/]?)*)"
+            r#"(?-u)(?P<pre>^|[[:space:]]|:|=)(?P<path>([A-Za-z]:[\\/]|\\\\)([^<>:|?'"\n]*[\\/]?)*)"#
         )
         .expect("Failed to compile ABS_WINPATH_RE regex.");
     }
@@ -35,7 +35,7 @@ fn translate_path_to_unix(argument: String) -> String {
     // 4. And then any number of valid characters (including \).
     lazy_static! {
         static ref REL_WINPATH_RE: Regex = Regex::new(
-            r"(?-u)^(?P<before>[^\\]+([[:space:]]|:|=))?(?P<path>([^<>:|?'\n\\]+)\\([^<>:|?'\n]*))(?P<after>.*)"
+            r#"(?-u)^(?P<before>[^\\]+([[:space:]]|:|=))?(?P<path>([^<>:|?'"\n\\]+)\\([^<>:|?'"\n]*))(?P<after>.*)"#
         )
         .expect("Failed to compile REL_WINPATH_RE regex.");
     }
@@ -156,7 +156,8 @@ fn translate_path_to_win(line: &[u8]) -> Vec<u8> {
         let line = std::str::from_utf8(&line).unwrap();
 
         let echo_cmd = format!("echo -n \"{}\"", line);
-        let output = Command::new("bash")
+        let output = Command::new("wsl")
+            .arg("bash")
             .arg("-c")
             .arg(&echo_cmd)
             .output()
@@ -174,15 +175,8 @@ fn translate_path_to_win(line: &[u8]) -> Vec<u8> {
     line.to_vec()
 }
 
-fn escape_newline(arg: String) -> String {
-    arg.replace("\n", "$'\n'")
-}
-
-fn quote_characters(ch: char) -> bool {
-    match ch {
-        '\"' | '\'' => true,
-        _ => false,
-    }
+fn escape_characters(arg: String) -> String {
+    arg.replace("\n", "$'\n'").replace("\"", "\\\"")
 }
 
 fn invalid_characters(ch: char) -> bool {
@@ -193,10 +187,7 @@ fn invalid_characters(ch: char) -> bool {
 }
 
 fn format_argument(arg: String) -> String {
-    if arg.contains(quote_characters) {
-        // if argument contains quotes then assume it is correctly quoted.
-        return arg;
-    } else if arg.contains(invalid_characters) || arg.is_empty() {
+    if arg.contains(invalid_characters) || arg.is_empty() {
         return format!("\"{}\"", arg);
     } else {
         return arg;
@@ -286,8 +277,8 @@ fn main() {
         env::args()
             .skip(1)
             .map(translate_path_to_unix)
-            .map(format_argument)
-            .map(escape_newline),
+            .map(escape_characters)
+            .map(format_argument),
     );
 
     let git_cmd: String = git_args.join(" ");
@@ -317,7 +308,7 @@ fn main() {
             } else {
                 format!("{}:WSLGIT", wslenv)
             }
-        },
+        }
         Err(_e) => format!("WSLGIT"),
     };
     env::set_var("WSLENV", wslenv);
@@ -430,23 +421,27 @@ mod tests {
     }
 
     #[test]
-    fn escape_newline() {
+    fn escape_characters() {
         assert_eq!(
-            super::escape_newline("ab\ncdef".to_string()),
+            super::escape_characters("ab\ncdef".to_string()),
             "ab$\'\n\'cdef"
         );
         assert_eq!(
-            super::escape_newline("ab\ncd ef".to_string()),
+            super::escape_characters("ab\ncd ef".to_string()),
             "ab$\'\n\'cd ef"
         );
         // Long arguments with newlines...
         assert_eq!(
-            super::escape_newline("--ab\ncdef".to_string()),
+            super::escape_characters("--ab\ncdef".to_string()),
             "--ab$\'\n\'cdef"
         );
         assert_eq!(
-            super::escape_newline("--ab\ncd ef".to_string()),
+            super::escape_characters("--ab\ncd ef".to_string()),
             "--ab$\'\n\'cd ef"
+        );
+        assert_eq!(
+            super::escape_characters("ab\"cd ef\"".to_string()),
+            "ab\\\"cd ef\\\""
         );
     }
 
@@ -456,7 +451,10 @@ mod tests {
         assert_eq!(format_argument("abc(def".to_string()), "\"abc(def\"");
         assert_eq!(format_argument("abc)def".to_string()), "\"abc)def\"");
         assert_eq!(format_argument("abc|def".to_string()), "\"abc|def\"");
-        assert_eq!(format_argument("\"abc def\"".to_string()), "\"abc def\"");
+        assert_eq!(
+            format_argument("\\\"abc def\\\"".to_string()),
+            "\"\\\"abc def\\\"\""
+        );
         assert_eq!(
             format_argument("user.(name|email)".to_string()),
             "\"user.(name|email)\""
@@ -540,6 +538,17 @@ mod tests {
 
     #[test]
     fn unix_to_win_path_trans() {
+        let check_wslpath = Command::new("wsl")
+            .arg("bash")
+            .arg("-c")
+            .arg("wslpath C:\\")
+            .output();
+        if check_wslpath.is_err() || !check_wslpath.expect("bash output").status.success() {
+            // Skip test if `wslpath` is not available (e.g. in CI)
+            // Either bash was not found, or running `wslpath` returned an error code
+            print!("SKIPPING TEST ... ");
+            return;
+        }
         assert_eq!(
             std::str::from_utf8(&translate_path_to_win(b"/fakemnt/d/some path/a file.md")).unwrap(),
             "\\\\wsl$\\Ubuntu-18.04\\fakemnt\\d\\some path\\a file.md"
@@ -591,6 +600,11 @@ mod tests {
             translate_path_to_unix("^remote\\..*".to_string()),
             "^remote\\..*"
         );
+
+        assert_eq!(
+            translate_path_to_unix("\"prefix:..\\wslgit\\src\\main.rs\"".to_string()),
+            "\"prefix:../wslgit/src/main.rs\""
+        );
     }
 
     #[test]
@@ -611,6 +625,13 @@ mod tests {
         assert_eq!(
             translate_path_to_unix("-c core.editor=C:/some/editor.exe".to_owned()),
             "-c core.editor=$(wslpath 'C:/some/editor.exe')"
+        );
+
+        assert_eq!(
+            translate_path_to_unix(
+                "-c \"credential.helper=C:/Program Files/SmartGit/lib/credentials.cmd\"".to_owned()
+            ),
+            "-c \"credential.helper=$(wslpath 'C:/Program Files/SmartGit/lib/credentials.cmd')\""
         );
     }
 }
